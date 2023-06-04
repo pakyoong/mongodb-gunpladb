@@ -1,39 +1,90 @@
-// 원본 출처: https://www.apollographql.com/docs/apollo-server/getting-started/
-
 const { ApolloServer, gql } = require('apollo-server');
+const mongoose = require('mongoose');
 
+mongoose.Promise = global.Promise;
+
+const connectMongoDB = async () => {
+    try {
+        res = await mongoose.connect("mongodb://localhost/gunpladb", 
+                {
+                    useNewUrlParser: true,
+                    useUnifiedTopology: true 
+                })
+        console.log('MongoDB Connected');
+        return res
+    } catch (err) {
+        console.error(err)  
+        return null
+    }
+}
+
+connectMongoDB()
+
+//----------------------------
+const reviewSchema = new mongoose.Schema({
+    name: String,
+    model: String,
+    manufacturer: String,
+    height: String,
+    weight: String,
+    memo: [ {
+        grade: String,
+        description: String   
+    }]    
+})
+
+// 세 번째 파라미터에 MongoDB의 컬렉션 이름인 'review' 전달하여 연결
+const Review = mongoose.model('Review', reviewSchema, 'review')
+
+//----------------------------
 // NOTE: 따옴표 (') 아니고 backtick (`) 주의
 const typeDefs = gql`
-  # 아직 MongoDB를 연결하지 않아서 dummy 데이터 사용
+  type Memo {
+    grade: String
+    description: String
+  }
+
   type Review {
     name: String
-    description: String
+    model: String
+    manufacturer: String
+    height: Float
+    weight: Float
+    memo: [Memo]
   }
 
   # Review 들의 배열 반환
   type Query {
     reviews: [Review]
-  }
-`;
+  }`
 
-const gunpla = [
-  {
-    name: '자쿠II',
-    description: 'SD지만 육중함은 그대로',
-  },
-  {
-    name: '건담 5호기',
-    description: '기대하지 않았는데 만족도가 높았던 킷',
-  },
-  {
-    name: '스트라이크건담',
-    description: '스트라이크 건담은 모든 등급이 다 잘 뽑힌듯',
-  },
-];
+// POST Query Body
+// {
+//     reviews {
+//         name
+//         model
+//         manufacturer
+//         height
+//         weight
+//         memo {
+//             grade
+//             description
+//         }
+//     }
+// }
 
 const resolvers = {
   Query: {
-    reviews: () => gunpla,
+    reviews: async () => {
+        try {
+            res = await Review.find({})
+            //console.log(res)
+            return res
+        } catch (err) {
+            console.log(err)
+            return null
+        }
+    },
   },
 };
 
